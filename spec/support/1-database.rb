@@ -10,7 +10,7 @@ if File.exist?(database_yml)
   ActiveRecord::Base.configurations = YAML.load_file(database_yml)
   ActiveRecord::Base.logger = Logger.new(File.join(File.dirname(__FILE__), '../debug.log'))
   ActiveRecord::Base.logger.level = ENV['TRAVIS'] ? ::Logger::ERROR : ::Logger::DEBUG
-  config = ActiveRecord::Base.configurations[db_name]
+  config = ActiveRecord::Base.configurations.find_db_config(db_name)
 
   begin
     #activerecord 4 uses symbol
@@ -24,11 +24,11 @@ if File.exist?(database_yml)
   rescue
     case db_name
       when /mysql/
-        ActiveRecord::Base.establish_connection(config.merge('database' => nil))
-        ActiveRecord::Base.connection.create_database(config['database'], {charset: 'utf8', collation: 'utf8_unicode_ci'})
+        ActiveRecord::Base.establish_connection(config.configuration_hash.merge(database: nil))
+        ActiveRecord::Base.connection.create_database(config.database, {charset: 'utf8', collation: 'utf8_unicode_ci'})
       when 'postgresql'
-        ActiveRecord::Base.establish_connection(config.merge('database' => 'postgres', 'schema_search_path' => 'public'))
-        ActiveRecord::Base.connection.create_database(config['database'], config.merge('encoding' => 'utf8'))
+        ActiveRecord::Base.establish_connection(config.configuration_hash.merge(database: 'postgres', 'schema_search_path' => 'public'))
+        ActiveRecord::Base.connection.create_database(config.database, config.configuration_hash.merge('encoding' => 'utf8'))
     end
 
     ActiveRecord::Base.establish_connection(config)
